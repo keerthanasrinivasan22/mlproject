@@ -1,17 +1,22 @@
 import os
 import sys
+from dataclasses import dataclass
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+
 from src.exception import CustomException
 from src.logger import logging
-import pandas as pd
+from src.components.data_transformation import DataTransformation
 
-from sklearn.model_selection import train_test_split
-from dataclasses import dataclass
 
 @dataclass
 class DataIngestionConfig:
-    train_data_path: str = os.path.join('artifacts', 'train.csv')
-    test_data_path: str = os.path.join('artifacts', 'test.csv')
-    raw_data_path: str = os.path.join('artifacts', 'data.csv')
+    train_data_path: str = os.path.join("artifacts", "train.csv")
+    test_data_path: str = os.path.join("artifacts", "test.csv")
+    raw_data_path: str = os.path.join("artifacts", "data.csv")
+
+
 class DataIngestion:
     def __init__(self):
         self.ingestion_config = DataIngestionConfig()
@@ -19,28 +24,36 @@ class DataIngestion:
     def initiate_data_ingestion(self):
         logging.info("Entered the data ingestion method")
         try:
-            df = pd.read_csv('notebook/data/stud.csv')
+            # Update this path only if your dataset is in a different location
+            df = pd.read_csv("notebook/data/stud.csv")
             logging.info("Read the dataset as dataframe")
 
             os.makedirs(os.path.dirname(self.ingestion_config.raw_data_path), exist_ok=True)
             df.to_csv(self.ingestion_config.raw_data_path, index=False)
-            logging.info("Saved the raw data")
+            logging.info("Saved raw data to artifacts/data.csv")
 
             train_set, test_set = train_test_split(df, test_size=0.2, random_state=42)
             logging.info("Performed train-test split")
 
             train_set.to_csv(self.ingestion_config.train_data_path, index=False)
             test_set.to_csv(self.ingestion_config.test_data_path, index=False)
-            logging.info("Saved the train and test data")
+            logging.info("Saved train and test data")
 
-            return (
-                self.ingestion_config.train_data_path,
-                self.ingestion_config.test_data_path
-            )
+            return self.ingestion_config.train_data_path, self.ingestion_config.test_data_path
+
         except Exception as e:
             logging.error("Error occurred during data ingestion")
             raise CustomException(e, sys)
-        
+
+
 if __name__ == "__main__":
-    obj = DataIngestion()
-    obj.initiate_data_ingestion()
+    ingestion = DataIngestion()
+    train_data, test_data = ingestion.initiate_data_ingestion()
+
+    transformation = DataTransformation()
+    train_arr, test_arr, preprocessor_path = transformation.initiate_data_transformation(train_data, test_data)
+
+    print("Transformation completed.")
+    print("Train array shape:", train_arr.shape)
+    print("Test array shape:", test_arr.shape)
+    print("Preprocessor saved at:", preprocessor_path)
